@@ -1,40 +1,64 @@
-# Welcome to Remix!
+# Vite-Env-Only Reproduction
 
-- 📖 [Remix docs](https://remix.run/docs)
+Reproduction for https://github.com/pcattori/vite-env-only/issues/52.
 
-## Development
+## Reproduction steps
 
-Run the dev server:
+1. `git clone https://github.com/stigi/vite-env-repro.git ; cd vite-env-repro ; npm install`
+2. `npm run dev`
+3. Open http://localhost:5173/
 
-```shellscript
-npm run dev
+### Expected
+
+- No `vite-env-only` error in the console
+- `{ isbot: false, isSSR: true }` printed to the console, demonstrating that the usage is actually in the server (SSR) environment.
+
+### Actual
+
+Error, from `index.html` showing `isbot` usage in `client` environment:
+
+```
+Error: [vite-env-only] Import denied
+ - Denied by specifier pattern: isbot
+ - Importer: index.html
+ - Import: "isbot"
+ - Environment: client
+    at ResolveIdContext.resolveId (file:///Users/ullrich/tmp/x/vite-env-repro/node_modules/vite-env-only/dist/index.js:153:15)
+    at EnvironmentPluginContainer.resolveId (file:///Users/ullrich/tmp/x/vite-env-repro/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42213:17)
+    at EnvironmentModuleGraph._resolveUrl (file:///Users/ullrich/tmp/x/vite-env-repro/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47715:41)
+    at EnvironmentModuleGraph.getModuleByUrl (file:///Users/ullrich/tmp/x/vite-env-repro/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47476:19)
+    at async Promise.all (index 0)
+    at ModuleGraph.getModuleByUrl (file:///Users/ullrich/tmp/x/vite-env-repro/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:37922:39)
+    at addFromUrl (/Users/ullrich/tmp/x/vite-env-repro/node_modules/@remix-run/dev/dist/vite/styles.js:147:16)
+    at async Promise.all (index 2)
+    at findDeps (/Users/ullrich/tmp/x/vite-env-repro/node_modules/@remix-run/dev/dist/vite/styles.js:159:3)
+    at getStylesForFiles (/Users/ullrich/tmp/x/vite-env-repro/node_modules/@remix-run/dev/dist/vite/styles.js:103:7)
 ```
 
-## Deployment
+## Steps to create this repo
 
-First, build your app for production:
-
-```sh
-npm run build
+1. `npx create-remix@latest vite-env-repro ; cd vite-env-repro`
+2. `npm install -D vite-env-only`
+3. Editing vite config, adding example config from the vite-env-only Readme, denying isbot on client
+```
+    denyImports({
+      client: {
+        specifiers: ["fs-extra", /^node:/, "isbot"],
+        files: ["**/.server/*", "**/*.server.*"],
+      },
+      server: {
+        specifiers: ["jquery"],
+      },
+    }),
+```
+4. Adding usage of `isbot` to `root.tsx`.
+```
+export async function loader() {
+  return {
+    isbot: isbot(),
+    isSSR: import.meta.env.SSR,
+  }
+}
 ```
 
-Then run the app in production mode:
-
-```sh
-npm start
-```
-
-Now you'll need to pick a host to deploy it to.
-
-### DIY
-
-If you're familiar with deploying Node applications, the built-in Remix app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-- `build/server`
-- `build/client`
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever css framework you prefer. See the [Vite docs on css](https://vitejs.dev/guide/features.html#css) for more information.
+Can also be followed in the commit history.
